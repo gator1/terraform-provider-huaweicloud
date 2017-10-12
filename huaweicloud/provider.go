@@ -13,6 +13,20 @@ var osMutexKV = mutexkv.NewMutexKV()
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
+			"access_key": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_ACCESS_KEY", ""),
+				Description: descriptions["access_key"],
+			},
+
+			"secret_key": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_SECRET_KEY", ""),
+				Description: descriptions["secret_key"],
+			},
+
 			"auth_url": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
@@ -145,6 +159,7 @@ func Provider() terraform.ResourceProvider {
 			"huaweicloud_images_image_v2":        dataSourceImagesImageV2(),
 			"huaweicloud_networking_network_v2":  dataSourceNetworkingNetworkV2(),
 			"huaweicloud_networking_secgroup_v2": dataSourceNetworkingSecGroupV2(),
+			"huaweicloud_s3_bucket_object":       dataSourceAwsS3BucketObject(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -161,9 +176,9 @@ func Provider() terraform.ResourceProvider {
 			"huaweicloud_compute_volume_attach_v2":        resourceComputeVolumeAttachV2(),
 			"huaweicloud_dns_recordset_v2":                resourceDNSRecordSetV2(),
 			"huaweicloud_dns_zone_v2":                     resourceDNSZoneV2(),
-			"huaweicloud_fw_firewall_v1":                  resourceFWFirewallV1(),
-			"huaweicloud_fw_policy_v1":                    resourceFWPolicyV1(),
-			"huaweicloud_fw_rule_v1":                      resourceFWRuleV1(),
+			"huaweicloud_fw_firewall_group_v2":            resourceFWFirewallGroupV2(),
+			"huaweicloud_fw_policy_v2":                    resourceFWPolicyV2(),
+			"huaweicloud_fw_rule_v2":                      resourceFWRuleV2(),
 			"huaweicloud_identity_project_v3":             resourceIdentityProjectV3(),
 			"huaweicloud_identity_user_v3":                resourceIdentityUserV3(),
 			"huaweicloud_images_image_v2":                 resourceImagesImageV2(),
@@ -186,6 +201,9 @@ func Provider() terraform.ResourceProvider {
 			"huaweicloud_networking_secgroup_v2":          resourceNetworkingSecGroupV2(),
 			"huaweicloud_networking_secgroup_rule_v2":     resourceNetworkingSecGroupRuleV2(),
 			"huaweicloud_objectstorage_container_v1":      resourceObjectStorageContainerV1(),
+			"huaweicloud_s3_bucket":                       resourceAwsS3Bucket(),
+			"huaweicloud_s3_bucket_policy":                resourceAwsS3BucketPolicy(),
+			"huaweicloud_s3_bucket_object":                resourceAwsS3BucketObject(),
 		},
 
 		ConfigureFunc: configureProvider,
@@ -196,6 +214,12 @@ var descriptions map[string]string
 
 func init() {
 	descriptions = map[string]string{
+		"access_key": "The access key for API operations. You can retrieve this\n" +
+			"from the 'Security & Credentials' section of the AWS console.",
+
+		"secret_key": "The secret key for API operations. You can retrieve this\n" +
+			"from the 'Security & Credentials' section of the AWS console.",
+
 		"auth_url": "The Identity authentication URL.",
 
 		"region": "The HuaweiCloud region to connect to.",
@@ -235,6 +259,8 @@ func init() {
 
 func configureProvider(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
+		AccessKey:        d.Get("access_key").(string),
+		SecretKey:        d.Get("secret_key").(string),
 		CACertFile:       d.Get("cacert_file").(string),
 		ClientCertFile:   d.Get("cert").(string),
 		ClientKeyFile:    d.Get("key").(string),
